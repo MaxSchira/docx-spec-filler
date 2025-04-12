@@ -18,14 +18,14 @@ def fill_doc():
     for para in doc.paragraphs:
         for key, value in data.items():
             if key in para.text:
-                para.text = para.text.replace(key, value)
+               para.text = para.text.replace(key, str(value or ""))
 
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
                 for key, value in data.items():
                     if key in cell.text:
-                        cell.text = cell.text.replace(key, value)
+                        cell.text = cell.text.replace(key, str(value or ""))
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
         doc.save(tmp.name)
