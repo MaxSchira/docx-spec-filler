@@ -2,21 +2,16 @@ from flask import Flask, request, send_file
 from docxtpl import DocxTemplate
 import tempfile
 import os
-import json
 
 app = Flask(__name__)
 
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        # Nutze Form-Data Input
-        raw_json = request.form.get("data")
-        if not raw_json:
-            return "Missing 'data' in form", 400
+        data = request.get_json(force=True)  # <--- nimmt JSON Body direkt
+        if not isinstance(data, dict):
+            return "Invalid JSON structure", 400
 
-        data = json.loads(raw_json)
-
-        # Template laden & befüllen
         doc = DocxTemplate("Extract_Template.docx")
         doc.render(data)
 
@@ -26,10 +21,6 @@ def fill_doc():
 
     except Exception as e:
         return f"Error processing document: {str(e)}", 500
-
-@app.route("/")
-def health():
-    return "Server is alive!"
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
