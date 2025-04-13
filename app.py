@@ -2,7 +2,7 @@ from flask import Flask, request, send_file
 from docxtpl import DocxTemplate
 import tempfile
 import os
-import json  # Wichtig: für json.loads()
+import json
 
 app = Flask(__name__)
 
@@ -13,16 +13,18 @@ def health():
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        # Lade JSON aus Form Data
-        raw_json = request.form['data']
+        # Form-Daten abrufen
+        raw_json = request.form.get("data")
+        if not raw_json:
+            return "Missing 'data' in form submission", 400
+        
         data = json.loads(raw_json)
-        print("RAW incoming data:", request.form['data'])
 
-        # Lade Template und rendere es
+        # Template laden und rendern
         doc = DocxTemplate("Extract_Template.docx")
         doc.render(data)
 
-        # Speichere das gerenderte Dokument
+        # Temporäre Datei speichern und senden
         with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
             doc.save(tmp.name)
             return send_file(tmp.name, as_attachment=True, download_name="filled_specification.docx")
