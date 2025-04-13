@@ -2,6 +2,7 @@ from flask import Flask, request, send_file
 from docxtpl import DocxTemplate
 import tempfile
 import os
+import json  # Wichtig: für json.loads()
 
 app = Flask(__name__)
 
@@ -12,8 +13,9 @@ def health():
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        payload = request.get_json(force=True)
-        data = payload["data"]
+        # Lade JSON aus Form Data
+        raw_json = request.form['data']
+        data = json.loads(raw_json)
 
         # Lade Template und rendere es
         doc = DocxTemplate("Extract_Template.docx")
