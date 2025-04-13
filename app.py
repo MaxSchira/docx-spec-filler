@@ -3,8 +3,10 @@ from docxtpl import DocxTemplate
 import tempfile
 import os
 import json
+import logging
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
 @app.route("/")
 def health():
@@ -13,18 +15,15 @@ def health():
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        # ----------- LOG RAW INPUT -----------
         raw_data = request.get_data(as_text=True)
-        print("RAW REQUEST BODY:", raw_data)
+        logging.info(" RAW REQUEST BODY:\n%s", raw_data)
 
-        # ----------- PARSE JSON -----------
         data = json.loads(raw_data)
-        print("PARSED JSON:", data)
+        logging.info(" PARSED JSON:\n%s", data)
 
         if not isinstance(data, dict):
             return "Error: JSON is not a flat object", 400
 
-        # ----------- GENERATE DOCX -----------
         doc = DocxTemplate("Extract_Template.docx")
         doc.render(data)
 
@@ -33,7 +32,7 @@ def fill_doc():
             return send_file(tmp.name, as_attachment=True, download_name="filled_specification.docx")
 
     except Exception as e:
-        print("⚠️ ERROR:", str(e))
+        logging.exception(" ERROR during document generation:")
         return f"Error processing document: {str(e)}", 500
 
 if __name__ == "__main__":
