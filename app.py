@@ -16,6 +16,7 @@ def fill_doc():
         # Lade JSON aus Form Data
         raw_json = request.form['data']
         data = json.loads(raw_json)
+        print("RAW incoming data:", request.form['data'])
 
         # Lade Template und rendere es
         doc = DocxTemplate("Extract_Template.docx")
