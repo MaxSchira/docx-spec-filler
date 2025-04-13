@@ -2,16 +2,29 @@ from flask import Flask, request, send_file
 from docxtpl import DocxTemplate
 import tempfile
 import os
+import json
 
 app = Flask(__name__)
+
+@app.route("/")
+def health():
+    return "Server is alive!"
 
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        data = request.get_json(force=True)  # <--- nimmt JSON Body direkt
-        if not isinstance(data, dict):
-            return "Invalid JSON structure", 400
+        # ----------- LOG RAW INPUT -----------
+        raw_data = request.get_data(as_text=True)
+        print("RAW REQUEST BODY:", raw_data)
 
+        # ----------- PARSE JSON -----------
+        data = json.loads(raw_data)
+        print("PARSED JSON:", data)
+
+        if not isinstance(data, dict):
+            return "Error: JSON is not a flat object", 400
+
+        # ----------- GENERATE DOCX -----------
         doc = DocxTemplate("Extract_Template.docx")
         doc.render(data)
 
@@ -20,6 +33,7 @@ def fill_doc():
             return send_file(tmp.name, as_attachment=True, download_name="filled_specification.docx")
 
     except Exception as e:
+        print("⚠️ ERROR:", str(e))
         return f"Error processing document: {str(e)}", 500
 
 if __name__ == "__main__":
