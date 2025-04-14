@@ -18,10 +18,19 @@ def health():
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        # Eingehende JSON-Daten empfangen
+        # Eingehende JSON-Daten empfangen und testen
         raw_data = request.get_data(as_text=True)
         logging.info("RAW REQUEST BODY:\n%s", raw_data)
+        
+        print(" Form Data Keys:", request.form.keys())
+        print(" Form Data Content:", request.form)
 
+        raw_json = request.form.get("data")
+        if not raw_json:
+            return "No 'data' field in form", 400
+        
+        print(" Raw JSON String:", raw_json)
+        data = json.loads(raw_json)  # Hier knallt's bei leerem String
         data = json.loads(raw_data)
         logging.info("PARSED JSON:\n%s", data)
 
