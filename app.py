@@ -1,47 +1,70 @@
-from flask import Flask, request, send_file, jsonify
-from docxtpl import DocxTemplate
+from flask import Flask, request, send_file
+from docxtpl import DocxTemplate, InlineImage
+from docx.shared import Inches
+from pdf2image import convert_from_path
+from PIL import Image
 import tempfile
 import os
 import json
 import logging
 
-# Initialisiere Flask & Logging
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 @app.route("/")
 def health():
-    return " Server is alive!"
+    return "Server is alive!"
 
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        # Versuche JSON-Body zu laden
+        # Eingehende JSON-Daten empfangen
         raw_data = request.get_data(as_text=True)
-        logging.info(" Raw request body:\n%s", raw_data)
+        logging.info("RAW REQUEST BODY:\n%s", raw_data)
 
-        # JSON parsen
         data = json.loads(raw_data)
-        if not isinstance(data, dict):
-            return jsonify({"error": "Invalid format – expected flat JSON object"}), 400
+        logging.info("PARSED JSON:\n%s", data)
 
-        # Lade und rendere das Template
-        doc = DocxTemplate("Extract_Template.docx")
-        doc.render(data)
+        # Pfad zum DOCX-Template
+        template = DocxTemplate("Extract_Template.docx")
 
-        # Speichere das ausgefüllte Dokument temporär
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
-            doc.save(tmp.name)
-            logging.info(" Document rendered successfully.")
-            return send_file(tmp.name, as_attachment=True, download_name="filled_specification.docx")
+        # Flowchart vorbereiten
+        flowchart_path = "flowchart.pdf"
+        if os.path.exists(flowchart_path):
+            images = convert_from_path(flowchart_path)
+            image = images[0]  # Erste Seite als Bild
+            img_tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            image.save(img_tempfile.name, "PNG")
 
-    except json.JSONDecodeError as e:
-        logging.error(" JSON Decode Error: %s", str(e))
-        return jsonify({"error": "Invalid JSON format", "details": str(e)}), 400
+            # Dynamische Größenlogik
+            width_px, height_px = image.size
+            dpi = 300  # angenommene DPI
+            width_in = width_px / dpi
+            height_in = height_px / dpi
+
+            max_width = 6.5
+            max_height = 7.5  # neue Empfehlung basierend auf deinem Feedback
+
+            if width_in > height_in:
+                flowchart_image = InlineImage(template, img_tempfile.name, width=Inches(max_width))
+            else:
+                flowchart_image = InlineImage(template, img_tempfile.name, height=Inches(max_height))
+
+            data["flowchart"] = flowchart_image
+        else:
+            logging.warning("No flowchart.pdf found – inserting empty placeholder")
+            data["flowchart"] = ""
+
+        # Template rendern
+        template.render(data)
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+        template.save(tmp.name)
+
+        return send_file(tmp.name, as_attachment=True, download_name="filled_specification.docx")
 
     except Exception as e:
-        logging.exception(" Error during document generation:")
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logging.exception("ERROR during document generation:")
+        return f"Error processing document: {str(e)}", 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
