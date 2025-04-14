@@ -60,8 +60,8 @@ def fill_doc():
             width_in = width_px / dpi
             height_in = height_px / dpi
 
-            max_width = 6.5
-            max_height = 7
+            max_width = 5.9
+            max_height = 6.7
 
             if width_in > height_in:
                 flowchart_image = InlineImage(template, img_tempfile.name, width=Inches(max_width))
