@@ -18,39 +18,41 @@ def health():
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        # Eingehende JSON-Daten empfangen und testen
+        # Log Rohdaten
         raw_data = request.get_data(as_text=True)
         logging.info("RAW REQUEST BODY:\n%s", raw_data)
-        
-        print(" Form Data Keys:", request.form.keys())
-        print(" Form Data Content:", request.form)
+
+        print("Form Data Keys:", request.form.keys())
+        print("Form Data Content:", request.form)
 
         raw_json = request.form.get("data")
         if not raw_json:
             return "No 'data' field in form", 400
-        
-        print(" Raw JSON String:", raw_json)
-        data = json.loads(raw_json)  
-       
+
+        logging.info("\nRAW JSON String:\n%s", raw_json)
+        data = json.loads(raw_json)
         logging.info("PARSED JSON:\n%s", data)
 
-        # Pfad zum DOCX-Template
+        # Lade DOCX Template
         template = DocxTemplate("Extract_Template.docx")
 
+        # FLOWCHART Verarbeitung
         uploaded_file = request.files.get("file")
         if uploaded_file:
-            uploaded_file.save("flowchart.pdf")
-            logging.info("Flowchart uploaded and saved.")
-        else:
-            logging.warning("No file uploaded with key 'file'")
-    
-        # Flowchart vorbereiten
-        flowchart_path = "flowchart.pdf"
-        if os.path.exists(flowchart_path):
+            flowchart_path = "flowchart.pdf"
+            uploaded_file.save(flowchart_path)
+            logging.info(" Flowchart uploaded and saved: %s", uploaded_file.filename)
+            logging.info(" Flowchart saved at: %s", os.path.abspath(flowchart_path))
+
+            # Konvertiere PDF zu Bild
             images = convert_from_path(flowchart_path)
-            image = images[0]  # Erste Seite als Bild
+            logging.info(" PDF converted to %d image(s)", len(images))
+            image = images[0]
+
+            # Temporäre PNG-Datei speichern
             img_tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             image.save(img_tempfile.name, "PNG")
+            logging.info(" Flowchart image size: %s", image.size)
 
             # Dynamische Größenlogik
             width_px, height_px = image.size
@@ -59,7 +61,7 @@ def fill_doc():
             height_in = height_px / dpi
 
             max_width = 6.5
-            max_height = 7.5  # neue Empfehlung basierend auf deinem Feedback
+            max_height = 7.5
 
             if width_in > height_in:
                 flowchart_image = InlineImage(template, img_tempfile.name, width=Inches(max_width))
@@ -67,8 +69,9 @@ def fill_doc():
                 flowchart_image = InlineImage(template, img_tempfile.name, height=Inches(max_height))
 
             data["flowchart"] = flowchart_image
+            logging.info(" InlineImage assigned to template")
         else:
-            logging.warning("No flowchart.pdf found – inserting empty placeholder")
+            logging.warning(" No file uploaded with key 'file'")
             data["flowchart"] = ""
 
         # Template rendern
