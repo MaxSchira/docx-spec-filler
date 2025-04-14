@@ -37,6 +37,13 @@ def fill_doc():
         # Pfad zum DOCX-Template
         template = DocxTemplate("Extract_Template.docx")
 
+        uploaded_file = request.files.get("file")
+        if uploaded_file:
+            uploaded_file.save("flowchart.pdf")
+            logging.info("Flowchart uploaded and saved.")
+        else:
+            logging.warning("No file uploaded with key 'file'")
+    
         # Flowchart vorbereiten
         flowchart_path = "flowchart.pdf"
         if os.path.exists(flowchart_path):
