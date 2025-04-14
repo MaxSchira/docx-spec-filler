@@ -30,8 +30,8 @@ def fill_doc():
             return "No 'data' field in form", 400
         
         print(" Raw JSON String:", raw_json)
-        data = json.loads(raw_json)  # Hier knallt's bei leerem String
-        data = json.loads(raw_data)
+        data = json.loads(raw_json)  
+       
         logging.info("PARSED JSON:\n%s", data)
 
         # Pfad zum DOCX-Template
