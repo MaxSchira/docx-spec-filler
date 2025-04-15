@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aplantis Produktspezifikation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f6f6f6;
+      margin: 0;
+      padding: 2rem;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #265f4a;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      margin-top: 0.5rem;
+    }
+    button {
+      margin-top: 2rem;
+      width: 100%;
+      padding: 1rem;
+      background-color: #265f4a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1e4a39;
+    }
+    #loading {
+      display: none;
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Produktspezifikation generieren</h1>
+    <form id="upload-form">
+      <label for="spec">Spezifikation (PDF):</label>
+      <input type="file" id="spec" name="spec" accept=".pdf" required />
+
+      <label for="file">Flowchart (PDF):</label>
+      <input type="file" id="file" name="file" accept=".pdf" required />
+
+      <button type="submit">Dokument generieren</button>
+      <div id="loading">⏳ Verarbeitung läuft...</div>
+    </form>
+    <footer>
+      <p>© 2025 Demo für Aplantis GmbH</p>
+    </footer>
+  </div>
+
+  <script>
+    const form = document.getElementById("upload-form");
+    const loading = document.getElementById("loading");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      loading.style.display = "block";
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch("/fill-doc", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Fehler beim Generieren");
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Produktspezifikation.docx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (error) {
+        alert("Fehler: " + error.message);
+      } finally {
+        loading.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
