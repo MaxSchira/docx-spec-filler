@@ -6,13 +6,12 @@ from PIL import Image
 import os
 import tempfile
 import json
-import io
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@app.route("/", methods=["GET"])
+@app.route("/")
 def index():
     response = make_response(render_template("index.html"))
     response.headers["Content-Type"] = "text/html"
@@ -21,20 +20,12 @@ def index():
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        spec_file = request.files.get("spec")
+        spec_json = request.form.get("spec")
+        spec_data = json.loads(spec_json)
+
         flow_file = request.files.get("file")
-        disclaimer = request.form.get("disclaimer", "")
-
-        if not spec_file or not flow_file:
-            return "Missing files", 400
-
-        # Spezifikationsdaten parsen
-        spec_json_bytes = spec_file.read()
-        spec_data = json.loads(spec_json_bytes.decode("utf-8"))
-        spec_data["Disclaimer"] = disclaimer
-
-        # Flowchart vorbereiten
         flowchart_path = None
+
         if flow_file:
             pdf_temp_path = os.path.join(UPLOAD_FOLDER, "flowchart.pdf")
             flow_file.save(pdf_temp_path)
