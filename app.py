@@ -19,46 +19,6 @@ def index():
     response.headers["Content-Type"] = "text/html"
     return response
 
-@app.route("/upload", methods=["POST"])
-def upload():
-    spec_file = request.files.get("spec")
-    flow_file = request.files.get("file")
-    disclaimer = request.form.get("disclaimer", "")
-
-    if not spec_file or not flow_file:
-        return "Missing files", 400
-
-    # Debugging Output
-    print("[UPLOAD] Files received:")
-    print(f"- spec_file: {spec_file.filename}")
-    print(f"- flow_file: {flow_file.filename}")
-    print(f"- disclaimer: {disclaimer}")
-
-    try:
-        files = {
-            "spec": (spec_file.filename, spec_file.stream, spec_file.mimetype),
-            "file": (flow_file.filename, flow_file.stream, flow_file.mimetype)
-        }
-        data = {
-            "disclaimer": disclaimer
-        }
-
-        n8n_url = "https://maxschira.app.n8n.cloud/webhook/generate-doc"
-        print(f"[UPLOAD] Sending POST to {n8n_url}...")
-
-        response = requests.post(n8n_url, files=files, data=data)
-
-        print(f"[UPLOAD] n8n Response: {response.status_code}")
-        if response.status_code != 200:
-            print(response.text)
-            return f"n8n returned an error: {response.text}", 500
-
-        # Direkt zurück an Browser
-        return send_file(io.BytesIO(response.content), download_name="filled_specification.docx", as_attachment=True)
-
-    except Exception as e:
-        print("[UPLOAD] Exception occurred:", e)
-        return f"Error forwarding to n8n: {e}", 500
 
 # Route 3: fill-doc – wird von n8n aufgerufen
 @app.route("/fill-doc", methods=["POST"])
@@ -112,7 +72,7 @@ def fill_doc():
     except Exception as e:
         return f"Error generating document: {e}", 500
 
-# Route 4: Download – für zukünftige Erweiterungen
+# Route 3: Download – für zukünftige Erweiterungen
 @app.route("/download")
 def download_file():
     return send_file(os.path.join(UPLOAD_FOLDER, "filled_spec.docx"), as_attachment=True)
