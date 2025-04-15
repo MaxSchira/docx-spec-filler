@@ -3,24 +3,14 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Inches
 from pdf2image import convert_from_path
 from PIL import Image
-import tempfile
 import os
+import tempfile
 import json
-import requests
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Route 1: GUI anzeigen
-@app.route("/")
-def index():
-    response = make_response(render_template("index.html"))
-    response.headers["Content-Type"] = "text/html"
-    return response
-
-
-# Route 2: fill-doc – wird von n8n aufgerufen
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
@@ -33,49 +23,55 @@ def fill_doc():
 
         # Spezifikation lesen und JSON extrahieren
         try:
-            spec_data = json.load(spec_file.stream)
+            spec_data = json.load(spec_file)
         except Exception as e:
             return f"Invalid JSON in specification: {e}", 400
 
-        spec_data["disclaimer"] = disclaimer
+        # Flowchart verarbeiten
+        flowchart_path = None
+        if flow_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+                flow_file.save(tmp_pdf)
+                tmp_pdf_path = tmp_pdf.name
 
-        # Flowchart vorbereiten
-        images = convert_from_path(flow_file)
-        image = images[0]
-        img_tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-        image.save(img_tempfile.name, "PNG")
+            images = convert_from_path(tmp_pdf_path)
+            img = images[0]
 
-        # Dynamische Größenlogik
-        width_px, height_px = image.size
-        dpi = 300
-        width_in = width_px / dpi
-        height_in = height_px / dpi
+            img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
+            img.save(img_path, "PNG")
+            flowchart_path = img_path
 
-        max_width = 5.9
-        max_height = 6.7
-
-        if width_in > height_in:
-            flowchart_image = InlineImage(DocxTemplate("Extract_Template.docx"), img_tempfile.name, width=Inches(max_width))
-        else:
-            flowchart_image = InlineImage(DocxTemplate("Extract_Template.docx"), img_tempfile.name, height=Inches(max_height))
-
-        spec_data["flowchart"] = flowchart_image
-
-        # Template rendern
+        # Word-Dokument erzeugen
         doc = DocxTemplate("Extract_Template.docx")
+
+        if flowchart_path:
+            width_px, height_px = img.size
+            dpi = 300
+            width_in = width_px / dpi
+            height_in = height_px / dpi
+            max_width = 5.9
+            max_height = 6.7
+
+            if width_in > height_in:
+                flow_img = InlineImage(doc, flowchart_path, width=Inches(max_width))
+            else:
+                flow_img = InlineImage(doc, flowchart_path, height=Inches(max_height))
+
+            spec_data["flowchart"] = flow_img
+        else:
+            spec_data["flowchart"] = ""
+
+        if disclaimer:
+            spec_data["disclaimer"] = disclaimer
+
         doc.render(spec_data)
         output_path = os.path.join(UPLOAD_FOLDER, "filled_spec.docx")
         doc.save(output_path)
 
-        return send_file(output_path, as_attachment=True, download_name="filled_specification.docx")
+        return send_file(output_path, as_attachment=True)
 
     except Exception as e:
         return f"Error generating document: {e}", 500
-
-# Route 3: Download – für zukünftige Erweiterungen
-@app.route("/download")
-def download_file():
-    return send_file(os.path.join(UPLOAD_FOLDER, "filled_spec.docx"), as_attachment=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)), debug=True)
