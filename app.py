@@ -21,47 +21,46 @@ def index():
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
-        spec_file = request.files.get("spec")
-        flow_file = request.files.get("file")
+        print("Eingehender Request empfangen")
 
-        if not spec_file or spec_file.filename == "":
+        if "spec" not in request.files:
+            print("Spezifikationsdatei fehlt!")
             return "No specification file uploaded", 400
 
-        # Dateien zwischenspeichern
-        spec_path = os.path.join(UPLOAD_FOLDER, "spec.pdf")
-        spec_file.save(spec_path)
+        spec_file = request.files["spec"]
+        flow_file = request.files.get("file")
 
-        flow_path = None
+        print(f"Spezifikationsdatei erhalten: {spec_file.filename}")
         if flow_file:
-            flow_path = os.path.join(UPLOAD_FOLDER, "flowchart.pdf")
-            flow_file.save(flow_path)
+            print(f"Flowchart-Datei erhalten: {flow_file.filename}")
 
-        # FormData vorbereiten
+        webhook_url = "https://maxschira.app.n8n.cloud/webhook/generate-doc"
         files = {
-            "spec": open(spec_path, "rb"),
+            "spec": (spec_file.filename, spec_file.read(), spec_file.mimetype),
         }
-        if flow_path:
-            files["file"] = open(flow_path, "rb")
 
-        # Anfrage an n8n senden
-        n8n_url = "https://maxschira.app.n8n.cloud/webhook/generate-doc"
-        response = requests.post(n8n_url, files=files)
+        if flow_file:
+            files["file"] = (flow_file.filename, flow_file.read(), flow_file.mimetype)
 
-        for f in files.values():
-            f.close()
+        response = requests.post(webhook_url, files=files)
+        print("Anfrage an n8n gesendet")
 
         if response.status_code != 200:
-            return f"Fehler von n8n: {response.status_code} - {response.text}", 500
+            print("Fehler von n8n:", response.status_code, response.text)
+            return "n8n returned error", 500
 
-        # Antwortdatei an den Client zurückgeben
-        output_doc = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
-        output_doc.write(response.content)
-        output_doc.close()
+        output = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+        output.write(response.content)
+        output.close()
+        print("Dokument erfolgreich empfangen und gespeichert")
 
-        return send_file(output_doc.name, as_attachment=True, download_name="filled_specification.docx")
+        return send_file(output.name, as_attachment=True, download_name="filled_spec.docx")
 
     except Exception as e:
-        return f"Fehler bei der Verarbeitung: {e}", 500
+        print("Ausnahmefehler beim Verarbeiten:")
+        import traceback
+        traceback.print_exc()
+        return f"Error processing request: {e}", 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)), debug=True)
