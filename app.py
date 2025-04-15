@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, redirect, url_for
+from flask import Flask, request, render_template, send_file, redirect, url_for, make_response
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Inches
 from pdf2image import convert_from_path
@@ -11,24 +11,27 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
-    print(" INDEX ROUTE GET HIT")  # Debug-Ausgabe zur Kontrolle
-    
-    if request.method == "POST":
-        spec_file = request.files.get("specification")
-        flow_file = request.files.get("flowchart")
+    response = make_response(render_template("index.html"))
+    response.headers["Content-Type"] = "text/html"
+    return response
+
+@app.route("/fill-doc", methods=["POST"])
+def fill_doc():
+    try:
+        spec_file = request.files.get("spec")
+        flow_file = request.files.get("file")
 
         if not spec_file or spec_file.filename == "":
             return "No specification file uploaded", 400
 
-        # Spezifikation lesen und JSON extrahieren
-        try:
-            spec_data = json.load(spec_file)
-        except Exception as e:
-            return f"Invalid JSON in specification: {e}", 400
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as spec_temp:
+            spec_file.save(spec_temp.name)
+            spec_temp.seek(0)
+            spec_json = json.load(spec_temp)
 
-        # Flowchart verarbeiten
+        # Flowchart vorbereiten
         flowchart_path = None
         if flow_file:
             pdf_temp_path = os.path.join(UPLOAD_FOLDER, "flowchart.pdf")
@@ -40,7 +43,6 @@ def index():
             img.save(img_path, "PNG")
             flowchart_path = img_path
 
-        # Word-Dokument erzeugen
         doc = DocxTemplate("Extract_Template.docx")
 
         if flowchart_path:
@@ -56,21 +58,22 @@ def index():
             else:
                 flow_img = InlineImage(doc, flowchart_path, height=Inches(max_height))
 
-            spec_data["flowchart"] = flow_img
+            spec_json["flowchart"] = flow_img
         else:
-            spec_data["flowchart"] = ""
+            spec_json["flowchart"] = ""
 
-        doc.render(spec_data)
+        doc.render(spec_json)
         output_path = os.path.join(UPLOAD_FOLDER, "filled_spec.docx")
         doc.save(output_path)
 
-        return redirect(url_for("download_file"))
+        return send_file(output_path, as_attachment=True, download_name="filled_specification.docx")
 
-    return render_template("index.html")
+    except Exception as e:
+        return f"Fehler bei der Dokumentgenerierung: {str(e)}", 500
 
 @app.route("/download")
 def download_file():
     return send_file(os.path.join(UPLOAD_FOLDER, "filled_spec.docx"), as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)), debug=True)
