@@ -13,6 +13,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    print(" INDEX ROUTE GET HIT")  # Debug-Ausgabe zur Kontrolle
+    
     if request.method == "POST":
         spec_file = request.files.get("specification")
         flow_file = request.files.get("flowchart")
