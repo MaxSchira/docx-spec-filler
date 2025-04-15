@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Produktspezifikation Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: #F5F5F5;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #1D3C34;
+      color: #FFFFFF;
+      padding: 1em;
+      text-align: center;
+    }
+    main {
+      padding: 2em;
+      max-width: 800px;
+      margin: auto;
+      background-color: #FFFFFF;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1D3C34;
+    }
+    label {
+      display: block;
+      margin-top: 1em;
+    }
+    input[type="file"], textarea {
+      width: 100%;
+      padding: 0.5em;
+      margin-top: 0.5em;
+      border: 1px solid #CCCCCC;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #A8C66C;
+      color: #FFFFFF;
+      border: none;
+      padding: 0.75em 1.5em;
+      margin-top: 1em;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    button:hover {
+      background-color: #8AB54C;
+    }
+    footer {
+      text-align: center;
+      padding: 1em;
+      font-size: 0.9em;
+      color: #666666;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Produktspezifikation Generator</h1>
+  </header>
+  <main>
+    <form action="/fill-doc" method="post" enctype="multipart/form-data">
+      <label for="spec">Spezifikation (JSON):</label>
+      <input type="file" id="spec" name="spec" accept=".json" required>
+
+      <label for="file">Flowchart (PDF):</label>
+      <input type="file" id="file" name="file" accept=".pdf" required>
+
+      <button type="submit">Dokument generieren</button>
+    </form>
+  </main>
+  <footer>
+    &copy; 2025 Aplantis GmbH
+  </footer>
+</body>
+</html>
