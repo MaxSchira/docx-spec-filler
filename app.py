@@ -3,20 +3,49 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Inches
 from pdf2image import convert_from_path
 from PIL import Image
-import os
 import tempfile
+import os
 import json
+import requests
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@app.route("/", methods=["GET"])
+# Route 1: GUI anzeigen
+@app.route("/")
 def index():
     response = make_response(render_template("index.html"))
     response.headers["Content-Type"] = "text/html"
     return response
 
+# Route 2: Upload (von der GUI, sendet an n8n)
+@app.route("/upload", methods=["POST"])
+def upload():
+    try:
+        spec_file = request.files.get("spec")
+        flow_file = request.files.get("file")
+        disclaimer = request.form.get("disclaimer", "")
+
+        if not spec_file or not flow_file:
+            return "Missing files", 400
+
+        files = {
+            "spec": (spec_file.filename, spec_file.stream, spec_file.mimetype),
+            "file": (flow_file.filename, flow_file.stream, flow_file.mimetype),
+        }
+        data = {"disclaimer": disclaimer}
+
+        response = requests.post("https://maxschira.app.n8n.cloud/webhook/generate-doc", files=files, data=data)
+        if response.status_code != 200:
+            return f"n8n Error: {response.status_code} - {response.text}", 500
+
+        return response.content
+
+    except Exception as e:
+        return f"Upload Error: {e}", 500
+
+# Route 3: fill-doc – wird von n8n aufgerufen
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
@@ -27,44 +56,51 @@ def fill_doc():
         if not spec_file or not flow_file:
             return "Missing files", 400
 
-        # Spezifikation aus JSON-Datei lesen
-        spec_data = json.load(spec_file)
-        if disclaimer:
-            spec_data["Disclaimer"] = disclaimer
+        # Spezifikation lesen und JSON extrahieren
+        try:
+            spec_data = json.load(spec_file)
+        except Exception as e:
+            return f"Invalid JSON in specification: {e}", 400
 
-        # Flowchart-PDF in PNG konvertieren
-        pdf_temp_path = os.path.join(UPLOAD_FOLDER, "flowchart.pdf")
-        flow_file.save(pdf_temp_path)
-        images = convert_from_path(pdf_temp_path)
-        image = images[0]  # nur die erste Seite verwenden
-        img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
-        image.save(img_path, "PNG")
+        spec_data["disclaimer"] = disclaimer
 
-        # Größe berechnen
+        # Flowchart vorbereiten
+        images = convert_from_path(flow_file)
+        image = images[0]
+        img_tempfile = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        image.save(img_tempfile.name, "PNG")
+
+        # Dynamische Größenlogik
         width_px, height_px = image.size
         dpi = 300
         width_in = width_px / dpi
         height_in = height_px / dpi
+
         max_width = 5.9
         max_height = 6.7
 
-        doc = DocxTemplate("Extract_Template.docx")
-
         if width_in > height_in:
-            flow_img = InlineImage(doc, img_path, width=Inches(max_width))
+            flowchart_image = InlineImage(DocxTemplate("Extract_Template.docx"), img_tempfile.name, width=Inches(max_width))
         else:
-            flow_img = InlineImage(doc, img_path, height=Inches(max_height))
+            flowchart_image = InlineImage(DocxTemplate("Extract_Template.docx"), img_tempfile.name, height=Inches(max_height))
 
-        spec_data["flowchart"] = flow_img
+        spec_data["flowchart"] = flowchart_image
 
-        output_path = os.path.join(UPLOAD_FOLDER, "filled_spec.docx")
+        # Template rendern
+        doc = DocxTemplate("Extract_Template.docx")
         doc.render(spec_data)
+        output_path = os.path.join(UPLOAD_FOLDER, "filled_spec.docx")
         doc.save(output_path)
 
         return send_file(output_path, as_attachment=True, download_name="filled_specification.docx")
 
     except Exception as e:
-        return f"Bad request - please check your parameters\n{str(e)}", 500
+        return f"Error generating document: {e}", 500
+
+# Route 4: Download – für zukünftige Erweiterungen
+@app.route("/download")
+def download_file():
+    return send_file(os.path.join(UPLOAD_FOLDER, "filled_spec.docx"), as_attachment=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5050)), debug=True)
