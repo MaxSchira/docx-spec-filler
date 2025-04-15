@@ -23,53 +23,39 @@ def fill_doc():
         spec_file = request.files.get("spec")
         flow_file = request.files.get("file")
 
-        if not spec_file or spec_file.filename == "":
+        if not spec_file:
             return "No specification file uploaded", 400
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as spec_temp:
-            spec_file.save(spec_temp.name)
-            spec_temp.seek(0)
-            spec_json = json.load(spec_temp)
+        # Spezifikation speichern
+        spec_path = os.path.join(UPLOAD_FOLDER, "spec.pdf")
+        spec_file.save(spec_path)
 
-        # Flowchart vorbereiten
+        # Flowchart konvertieren (optional)
         flowchart_path = None
         if flow_file:
             pdf_temp_path = os.path.join(UPLOAD_FOLDER, "flowchart.pdf")
             flow_file.save(pdf_temp_path)
             images = convert_from_path(pdf_temp_path)
             img = images[0]
-
             img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
             img.save(img_path, "PNG")
             flowchart_path = img_path
 
-        doc = DocxTemplate("Extract_Template.docx")
+        # → HIER: call to n8n (z. B. über HTTP POST, aktuell ggf. noch lokal)
+        # → oder Übergabe an GPT-Assistant etc.
+        # Das fertige docx wird erwartet unter: output_path
 
-        if flowchart_path:
-            width_px, height_px = img.size
-            dpi = 300
-            width_in = width_px / dpi
-            height_in = height_px / dpi
-            max_width = 5.9
-            max_height = 6.7
-
-            if width_in > height_in:
-                flow_img = InlineImage(doc, flowchart_path, width=Inches(max_width))
-            else:
-                flow_img = InlineImage(doc, flowchart_path, height=Inches(max_height))
-
-            spec_json["flowchart"] = flow_img
-        else:
-            spec_json["flowchart"] = ""
-
-        doc.render(spec_json)
+        # Placeholder (damit der Workflow nicht crasht)
         output_path = os.path.join(UPLOAD_FOLDER, "filled_spec.docx")
+        doc = DocxTemplate("Extract_Template.docx")
+        doc.render({"flowchart": ""})  # Nur Dummy für Demo
         doc.save(output_path)
 
         return send_file(output_path, as_attachment=True, download_name="filled_specification.docx")
 
     except Exception as e:
-        return f"Fehler bei der Dokumentgenerierung: {str(e)}", 500
+        print("FEHLER:", str(e))
+        return f"Error processing document: {str(e)}", 500
 
 @app.route("/download")
 def download_file():
