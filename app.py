@@ -20,7 +20,7 @@ def index():
     return response
 
 
-# Route 3: fill-doc – wird von n8n aufgerufen
+# Route 2: fill-doc – wird von n8n aufgerufen
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
@@ -33,7 +33,7 @@ def fill_doc():
 
         # Spezifikation lesen und JSON extrahieren
         try:
-            spec_data = json.load(spec_file)
+            spec_data = json.load(spec_file.stream)
         except Exception as e:
             return f"Invalid JSON in specification: {e}", 400
 
