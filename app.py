@@ -36,7 +36,6 @@ def fill_doc():
             img.save(img_path, "PNG")
             flowchart_path = img_path
 
-        # Word-Dokument erzeugen
         doc = DocxTemplate("Extract_Template.docx")
 
         if flowchart_path:
