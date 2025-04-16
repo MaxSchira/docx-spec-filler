@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Produktspezifikation Generator – Aplantis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 2rem;
+            color: #333;
+        }
+        h1 {
+            color: #006241;
+        }
+        form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        input[type="file"] {
+            display: block;
+            margin-bottom: 1.5rem;
+        }
+        button {
+            background-color: #006241;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.2rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #004e32;
+        }
+        #status {
+            margin-top: 1.5rem;
+            font-weight: bold;
+        }
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Produktspezifikation erstellen</h1>
+    <form id="upload-form">
+        <label for="spec">Spezifikation (PDF):</label>
+        <input type="file" id="spec" name="spec" accept=".pdf" required>
+
+        <label for="file">Flowchart (PDF):</label>
+        <input type="file" id="file" name="file" accept=".pdf">
+
+        <button type="submit">Dokument generieren</button>
+        <div id="status"></div>
+    </form>
+
+    <footer>
+        © 2025 Demo für Aplantis GmbH
+    </footer>
+
+    <script>
+        const form = document.getElementById("upload-form");
+        const status = document.getElementById("status");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            status.textContent = "⏳ Dokument wird generiert...";
+
+            try {
+                const response = await fetch("/fill-doc", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error("Fehler beim Generieren");
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "filled_specification.docx";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                status.textContent = "✅ Dokument erfolgreich erstellt!";
+            } catch (error) {
+                console.error(error);
+                status.textContent = "❌ Fehler: " + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
