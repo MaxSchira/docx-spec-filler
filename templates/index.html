@@ -1,73 +1,85 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Produktspezifikation Generator</title>
-  <script defer>
-    async function handleSubmit(e) {
-      e.preventDefault();
-      const status = document.getElementById("status");
-      const downloadLink = document.getElementById("download-link");
-      downloadLink.style.display = "none";
-      status.innerText = "⏳ Dokument wird generiert...";
-
-      const form = document.getElementById("upload-form");
-      const formData = new FormData(form);
-
-      try {
-        const response = await fetch("https://maxschira.app.n8n.cloud/webhook/generate-doc", {
-          method: "POST",
-          body: formData
-        });
-
-        if (!response.ok) throw new Error("Fehler beim Generieren");
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-
-        downloadLink.href = url;
-        downloadLink.download = "filled_specification.docx";
-        downloadLink.style.display = "inline-block";
-        status.innerText = "✅ Erfolgreich generiert!";
-      } catch (err) {
-        console.error(err);
-        status.innerText = "❌ Fehler: " + err.message;
-      }
-    }
-  </script>
-  <style>
-    body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 3rem auto;
-      padding: 1rem;
-    }
-    input[type="file"] {
-      margin-bottom: 1rem;
-    }
-    #download-link {
-      margin-top: 1rem;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Aplantis Demo Zugang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f6f4;
+            color: #333;
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 500px;
+            background-color: white;
+            padding: 2rem;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #608a3b;
+        }
+        label {
+            display: block;
+            margin-top: 1rem;
+        }
+        input[type="password"],
+        input[type="file"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        button {
+            background-color: #608a3b;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            margin-top: 1.5rem;
+            cursor: pointer;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 2rem;
+        }
+    </style>
 </head>
 <body>
-  <h1>Produktspezifikation Generator</h1>
-  <form id="upload-form" onsubmit="handleSubmit(event)">
-    <label>Produktspezifikation (JSON/PDF):</label><br />
-    <input type="file" name="spec" required /><br />
+<div class="container">
+    <h2>Aplantis Demo Zugang</h2>
+    <div id="password-screen">
+        <label for="password">Passwort:</label>
+        <input type="password" id="password" placeholder="Passwort eingeben">
+        <button onclick="checkPassword()">Einloggen</button>
+    </div>
 
-    <label>Flowchart (PDF):</label><br />
-    <input type="file" name="file" accept="application/pdf" required /><br />
+    <form id="upload-form" action="/fill-doc" method="post" enctype="multipart/form-data" style="display:none;">
+        <label for="spec">Spezifikation (PDF):</label>
+        <input type="file" name="spec" required>
+        <label for="file">Flowchart (PDF):</label>
+        <input type="file" name="file">
+        <button type="submit">Hochladen & Generieren</button>
+    </form>
 
-    <label>Hinweis / Disclaimer (optional):</label><br />
-    <textarea name="disclaimer" rows="4" style="width: 100%;"></textarea><br />
+    <div class="footer">© 2025 Demo für Aplantis GmbH</div>
+</div>
 
-    <button type="submit">Dokument generieren</button>
-  </form>
-
-  <p id="status"></p>
-  <a id="download-link">Download starten</a>
+<script>
+    function checkPassword() {
+        const pw = document.getElementById("password").value;
+        if (pw === "atlantis2025") {
+            document.getElementById("password-screen").style.display = "none";
+            document.getElementById("upload-form").style.display = "block";
+        } else {
+            alert("Falsches Passwort!");
+        }
+    }
+</script>
 </body>
 </html>
