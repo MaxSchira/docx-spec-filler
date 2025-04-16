@@ -1,22 +1,3 @@
-from flask import Flask, request, render_template, send_file, redirect, url_for, make_response
-from docxtpl import DocxTemplate, InlineImage
-from docx.shared import Inches
-from pdf2image import convert_from_path
-from PIL import Image
-import os
-import tempfile
-import json
-
-app = Flask(__name__)
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-@app.route("/")
-def index():
-    response = make_response(render_template("index.html"))
-    response.headers["Content-Type"] = "text/html"
-    return response
-
 @app.route("/fill-doc", methods=["POST"])
 def fill_doc():
     try:
@@ -36,7 +17,6 @@ def fill_doc():
             img.save(img_path, "PNG")
             flowchart_path = img_path
 
-        # Word-Dokument erzeugen
         doc = DocxTemplate("Extract_Template.docx")
 
         if flowchart_path:
@@ -60,10 +40,14 @@ def fill_doc():
         output_path = os.path.join(UPLOAD_FOLDER, "filled_spec.docx")
         doc.save(output_path)
 
-        return send_file(output_path, as_attachment=True)
+        # WARNUNG ALS COOKIE MITGEBEN
+        flags = [key for key in spec_data if key.endswith("_Flag") and spec_data[key]]
+        if flags:
+            response = send_file(output_path, as_attachment=True)
+            response.set_cookie("warning", "true")
+            return response
+        else:
+            return send_file(output_path, as_attachment=True)
 
     except Exception as e:
         return f"Error generating document: {e}", 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=True)
