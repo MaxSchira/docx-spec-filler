@@ -59,7 +59,7 @@
         <button onclick="checkPassword()">Einloggen</button>
     </div>
 
-    <form id="upload-form" action="/fill-doc" method="post" enctype="multipart/form-data" style="display:none;">
+    <form id="upload-form" action="#" method="post" enctype="multipart/form-data" style="display:none;">
         <label for="spec">Spezifikation (PDF):</label>
         <input type="file" name="spec" required>
         <label for="file">Flowchart (PDF):</label>
@@ -92,17 +92,26 @@ document.getElementById("upload-form").addEventListener("submit", function(event
     statusDiv.innerText = "🕐 Dokument wird verarbeitet (ca. 1–2 Minuten)... bitte nicht schließen.";
     form.appendChild(statusDiv);
 
-    fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
+    fetch("https://maxschira.app.n8n.cloud/webhook/Atlantis.demo.2.1", {
         method: "POST",
         body: formData
     }).then(response => {
-        if (response.ok) {
-            statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet. Der Download startet in Kürze oder wird bereitgestellt.";
-        } else {
-            statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments. Bitte später erneut versuchen.";
+        if (!response.ok) {
+            throw new Error("Serverfehler");
         }
+        return response.blob();
+    }).then(blob => {
+        statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet. Download startet...";
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "Spezifikation.docx"; 
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
     }).catch(error => {
-        statusDiv.innerText = "❌ Netzwerkfehler oder Server nicht erreichbar.";
+        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments. Bitte später erneut versuchen.";
         console.error(error);
     });
 });
