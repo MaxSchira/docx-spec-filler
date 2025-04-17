@@ -59,7 +59,7 @@
         <button onclick="checkPassword()">Einloggen</button>
     </div>
 
-    <form id="upload-form" action="/fill-doc" method="post" enctype="multipart/form-data" style="display:none;">
+    <form id="upload-form" action="https://maxschira.app.n8n.cloud/webhook/Atlantis.demo.2.1" method="post" enctype="multipart/form-data" style="display:none;">
         <label for="spec">Spezifikation (PDF):</label>
         <input type="file" name="spec" required>
         <label for="file">Flowchart (PDF):</label>
@@ -73,7 +73,7 @@
 <script>
     function checkPassword() {
         const pw = document.getElementById("password").value;
-        if (pw === "atlantis2025") {
+        if (pw === "jLk83n0R") {
             document.getElementById("password-screen").style.display = "none";
             document.getElementById("upload-form").style.display = "block";
         } else {
