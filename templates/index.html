@@ -115,7 +115,8 @@ document.getElementById("upload-form").addEventListener("submit", function(event
                         warning.style.marginTop = "1rem";
                         warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" + 
                             flagged.map(k => "• " + k.replace("_Flag", "").replace(/_/g, " ")).join("<br>");
-                        form.appendChild(warning);
+                            console.log("⚠️ WARNUNG:", flagged);  // Debug
+                            statusDiv.innerHTML += "<br><br>" + warning.innerHTML; // Sichtbare Ausgabe
                     }
                 }
             } catch (err) {
