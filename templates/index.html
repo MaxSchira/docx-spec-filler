@@ -83,6 +83,7 @@
 </script>
 
 
+
 <script>
 document.getElementById("upload-form").addEventListener("submit", function(event) {
     event.preventDefault();
@@ -100,7 +101,6 @@ document.getElementById("upload-form").addEventListener("submit", function(event
         if (!response.ok) throw new Error("Serverfehler");
         const blob = await response.blob();
 
-        // JSON auslesen (wenn enthalten)
         const reader = new FileReader();
         reader.onload = function() {
             try {
@@ -115,28 +115,39 @@ document.getElementById("upload-form").addEventListener("submit", function(event
                         warning.style.marginTop = "1rem";
                         warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" + 
                             flagged.map(k => "• " + k.replace("_Flag", "").replace(/_/g, " ")).join("<br>");
-                            console.log("⚠️ WARNUNG:", flagged);  // Debug
-                            statusDiv.innerHTML += "<br><br>" + warning.innerHTML; // Sichtbare Ausgabe
+                        statusDiv.appendChild(warning);
                     }
                 }
+
+                const downloadButton = document.createElement("button");
+                downloadButton.innerText = "📥 Dokument herunterladen";
+                downloadButton.style.marginTop = "1rem";
+                downloadButton.onclick = function() {
+                    const byteCharacters = atob(text);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const finalBlob = new Blob([byteArray], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                    const url = window.URL.createObjectURL(finalBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "Spezifikation.docx";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                };
+                statusDiv.appendChild(downloadButton);
+                statusDiv.innerHTML += "<br>✅ Dokument ist bereit.";
             } catch (err) {
                 console.warn("Kein JSON oder keine Flags gefunden.", err);
             }
         };
         reader.readAsText(blob);
-
-        // Download auslösen
-        statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet. Download startet...";
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "Spezifikation.docx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
     }).catch(error => {
-        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments. Bitte später erneut versuchen.";
+        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
         console.error(error);
     });
 });
