@@ -82,9 +82,10 @@
     }
 </script>
 
+
 <script>
 document.getElementById("upload-form").addEventListener("submit", function(event) {
-    event.preventDefault(); // Verhindert das klassische Formular-Submit-Verhalten
+    event.preventDefault();
 
     const form = event.target;
     const formData = new FormData(form);
@@ -95,17 +96,40 @@ document.getElementById("upload-form").addEventListener("submit", function(event
     fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
         method: "POST",
         body: formData
-    }).then(response => {
-        if (!response.ok) {
-            throw new Error("Serverfehler");
-        }
-        return response.blob();
-    }).then(blob => {
+    }).then(async response => {
+        if (!response.ok) throw new Error("Serverfehler");
+        const blob = await response.blob();
+
+        // JSON auslesen (wenn enthalten)
+        const reader = new FileReader();
+        reader.onload = function() {
+            try {
+                const text = reader.result;
+                const match = text.match(/{.*}/s); // JSON suchen
+                if (match) {
+                    const json = JSON.parse(match[0]);
+                    const flagged = Object.keys(json).filter(k => k.endsWith("_Flag") && json[k] === true);
+                    if (flagged.length > 0) {
+                        const warning = document.createElement("div");
+                        warning.style.color = "red";
+                        warning.style.marginTop = "1rem";
+                        warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" + 
+                            flagged.map(k => "• " + k.replace("_Flag", "").replace(/_/g, " ")).join("<br>");
+                        form.appendChild(warning);
+                    }
+                }
+            } catch (err) {
+                console.warn("Kein JSON oder keine Flags gefunden.", err);
+            }
+        };
+        reader.readAsText(blob);
+
+        // Download auslösen
         statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet. Download startet...";
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = "Spezifikation.docx"; 
+        a.download = "Spezifikation.docx";
         document.body.appendChild(a);
         a.click();
         a.remove();
