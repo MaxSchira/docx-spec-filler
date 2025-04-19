@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aplantis Demo Zugang</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f6f4;
+            color: #333;
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 500px;
+            background-color: white;
+            padding: 2rem;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #608a3b;
+        }
+        label {
+            display: block;
+            margin-top: 1rem;
+        }
+        input[type="password"],
+        input[type="file"] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        button {
+            background-color: #608a3b;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            margin-top: 1.5rem;
+            cursor: pointer;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Aplantis Demo Zugang</h2>
+    <div id="password-screen">
+        <label for="password">Passwort:</label>
+        <input type="password" id="password" placeholder="Passwort eingeben">
+        <button onclick="checkPassword()">Einloggen</button>
+    </div>
+
+    <form id="upload-form" action="#" method="post" enctype="multipart/form-data" style="display:none;">
+        <label for="spec">Spezifikation (PDF):</label>
+        <input type="file" name="spec" required>
+        <label for="file">Flowchart (PDF):</label>
+        <input type="file" name="file">
+        <button type="submit">Hochladen & Generieren</button>
+    </form>
+
+    <div class="footer">© 2025 Demo für Aplantis GmbH</div>
+</div>
+
+<script>
+    function checkPassword() {
+        const pw = document.getElementById("password").value;
+        if (pw === "jLk83n0R") {
+            document.getElementById("password-screen").style.display = "none";
+            document.getElementById("upload-form").style.display = "block";
+        } else {
+            alert("Falsches Passwort!");
+        }
+    }
+</script>
+
+
+<script>
+document.getElementById("upload-form").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const statusDiv = document.createElement("div");
+    statusDiv.innerText = "🕐 Dokument wird verarbeitet (ca. 1–2 Minuten)... bitte nicht schließen.";
+    form.appendChild(statusDiv);
+
+    fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
+        method: "POST",
+        body: formData
+    }).then(async response => {
+        if (!response.ok) throw new Error("Serverfehler");
+        const blob = await response.blob();
+
+        // JSON auslesen (wenn enthalten)
+        const reader = new FileReader();
+        reader.onload = function() {
+            try {
+                const text = reader.result;
+                const match = text.match(/{.*}/s); // JSON suchen
+                if (match) {
+                    const json = JSON.parse(match[0]);
+                    const flagged = Object.keys(json).filter(k => k.endsWith("_Flag") && json[k] === true);
+                    if (flagged.length > 0) {
+                        const warning = document.createElement("div");
+                        warning.style.color = "red";
+                        warning.style.marginTop = "1rem";
+                        warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" + 
+                            flagged.map(k => "• " + k.replace("_Flag", "").replace(/_/g, " ")).join("<br>");
+                            console.log("⚠️ WARNUNG:", flagged);  // Debug
+                            statusDiv.innerHTML += "<br><br>" + warning.innerHTML; // Sichtbare Ausgabe
+                    }
+                }
+            } catch (err) {
+                console.warn("Kein JSON oder keine Flags gefunden.", err);
+            }
+        };
+        reader.readAsText(blob);
+
+        // Download auslösen
+        statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet. Download startet...";
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "Spezifikation.docx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    }).catch(error => {
+        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments. Bitte später erneut versuchen.";
+        console.error(error);
+    });
+});
+</script>
+
+</body>
+</html>
