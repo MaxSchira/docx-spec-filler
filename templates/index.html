@@ -99,7 +99,8 @@ document.getElementById("upload-form").addEventListener("submit", function(event
         body: formData
     }).then(async response => {
         if (!response.ok) throw new Error("Serverfehler");
-        const blob = await response.blob();
+        const text = await response.text();
+console.log("🧪 Response text preview:", text);
 
         const reader = new FileReader();
         reader.onload = function() {
