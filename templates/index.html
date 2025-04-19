@@ -90,7 +90,7 @@ document.getElementById("upload-form").addEventListener("submit", function(event
     const form = event.target;
     const formData = new FormData(form);
     const statusDiv = document.createElement("div");
-    statusDiv.innerText = "🕐 Dokument wird verarbeitet (ca. 1–2 Minuten)... bitte nicht schließen.";
+    statusDiv.innerText = "🕐 Dokument wird verarbeitet (ca. 1 Minute)... bitte nicht schließen.";
     form.appendChild(statusDiv);
 
     fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
@@ -98,45 +98,44 @@ document.getElementById("upload-form").addEventListener("submit", function(event
         body: formData
     }).then(async response => {
         if (!response.ok) throw new Error("Serverfehler");
-        const blob = await response.blob();
 
-        // JSON auslesen (wenn enthalten)
-        const reader = new FileReader();
-        reader.onload = function() {
-            try {
-                const text = reader.result;
-                const match = text.match(/{.*}/s); // JSON suchen
-                if (match) {
-                    const json = JSON.parse(match[0]);
-                    const flagged = Object.keys(json).filter(k => k.endsWith("_Flag") && json[k] === true);
-                    if (flagged.length > 0) {
-                        const warning = document.createElement("div");
-                        warning.style.color = "red";
-                        warning.style.marginTop = "1rem";
-                        warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" + 
-                            flagged.map(k => "• " + k.replace("_Flag", "").replace(/_/g, " ")).join("<br>");
-                            console.log("⚠️ WARNUNG:", flagged);  // Debug
-                            statusDiv.innerHTML += "<br><br>" + warning.innerHTML; // Sichtbare Ausgabe
-                    }
-                }
-            } catch (err) {
-                console.warn("Kein JSON oder keine Flags gefunden.", err);
-            }
+        const data = await response.json();
+
+        // ⚠️ Warnung anzeigen
+        if (data.flags && data.flags.length > 0) {
+            const warning = document.createElement("div");
+            warning.style.color = "red";
+            warning.style.marginTop = "1rem";
+            warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" +
+                data.flags.map(f => "• " + f.replace(/_/g, " ")).join("<br>");
+            form.appendChild(warning);
+        }
+
+        // 📥 Button zum Herunterladen erzeugen
+        const downloadButton = document.createElement("button");
+        downloadButton.innerText = "📥 Dokument herunterladen";
+        downloadButton.style.marginTop = "1rem";
+        downloadButton.onclick = function () {
+            const byteCharacters = atob(data.file);
+            const byteNumbers = Array.from(byteCharacters).map(c => c.charCodeAt(0));
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {
+                type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "Spezifikation.docx";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
         };
-        reader.readAsText(blob);
 
-        // Download auslösen
-        statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet. Download startet...";
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "Spezifikation.docx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        form.appendChild(downloadButton);
+        statusDiv.innerText = "✅ Dokument ist bereit.";
     }).catch(error => {
-        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments. Bitte später erneut versuchen.";
+        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
         console.error(error);
     });
 });
