@@ -66,8 +66,7 @@ def fill_doc():
             response.set_cookie("warning", "true")
             return response
         else:
-            # Extrahiere Flags aus spec_json
-flags = []
+            flags = []
 try:
     spec_data = json.loads(spec_json)
     if isinstance(spec_data, list):
