@@ -66,7 +66,27 @@ def fill_doc():
             response.set_cookie("warning", "true")
             return response
         else:
-            return send_file(output_path, as_attachment=True)
+            # Extrahiere Flags aus spec_json
+flags = []
+try:
+    spec_data = json.loads(spec_json)
+    if isinstance(spec_data, list):
+        spec_data = spec_data[0]  # Nur erstes Objekt im Array verwenden
+    for key, value in spec_data.items():
+        if key.endswith("_Flag") and value is True:
+            flags.append(key.replace("_Flag", ""))
+except Exception as e:
+    flags = []
+
+# Konvertiere Datei zu base64
+encoded_file = base64.b64encode(document_stream.read()).decode("utf-8")
+document_stream.seek(0)
+
+# Rückgabe als JSON (Flags + Datei)
+return jsonify({
+    "flags": flags,
+    "file": encoded_file
+})
 
     except Exception as e:
         return f"Error generating document: {e}", 500
