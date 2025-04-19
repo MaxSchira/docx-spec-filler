@@ -66,7 +66,8 @@ def fill_doc():
             response.set_cookie("warning", "true")
             return response
         else:
-          flags = []
+            # Extrahiere Flags aus spec_json
+flags = []
 try:
     spec_data = json.loads(spec_json)
     if isinstance(spec_data, list):
@@ -77,11 +78,11 @@ try:
 except Exception as e:
     flags = []
 
-# Konvertiere Datei zu base64
+# Konvertiere Dokument zu base64
 encoded_file = base64.b64encode(document_stream.read()).decode("utf-8")
 document_stream.seek(0)
 
-# Rückgabe als JSON (Flags + Datei)
+# JSON-Antwort senden (Flags + base64-Dokument)
 return jsonify({
     "flags": flags,
     "file": encoded_file
