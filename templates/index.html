@@ -84,37 +84,38 @@
 
 
 <script>
-    document.getElementById("upload-form").addEventListener("submit", function(event) {
+    document.getElementById("upload-form").addEventListener("submit", async function(event) {
         event.preventDefault();
     
         const form = event.target;
         const formData = new FormData(form);
-    
-        // Statusanzeige initialisieren
         const statusDiv = document.createElement("div");
         statusDiv.innerText = "🕐 Dokument wird verarbeitet (ca. 1 Minute)... bitte nicht schließen.";
-        statusDiv.style.marginTop = "1rem";
         form.appendChild(statusDiv);
     
-        fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
-            method: "POST",
-            body: formData
-        }).then(async response => {
-            if (!response.ok) throw new Error("Serverfehler");
+        try {
+            const response = await fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
+                method: "POST",
+                body: formData
+            });
     
-            const data = await response.json();
+            const text = await response.text();
+            console.log("🧾 Rohdaten vom Server:", text);
     
-            // ⚠️ Warnung anzeigen, falls Flags vorhanden
+            const data = JSON.parse(text);
+            console.log("✅ Geparstes JSON:", data);
+    
+            // ⚠️ Warnungen anzeigen
             if (data.flags && data.flags.length > 0) {
                 const warning = document.createElement("div");
                 warning.style.color = "red";
                 warning.style.marginTop = "1rem";
                 warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" +
-                    data.flags.map(f => "• " + f.replace("_Flag", "").replace(/_/g, " ")).join("<br>");
+                    data.flags.map(f => "• " + f.replace(/_/g, " ")).join("<br>");
                 form.appendChild(warning);
             }
     
-            // 📥 Button zum Herunterladen erzeugen
+            // 📥 Button zum Herunterladen
             const downloadButton = document.createElement("button");
             downloadButton.innerText = "📥 Dokument herunterladen";
             downloadButton.style.marginTop = "1rem";
@@ -137,10 +138,10 @@
     
             form.appendChild(downloadButton);
             statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet.";
-        }).catch(error => {
+        } catch (error) {
             statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
-            console.error(error);
-        });
+            console.error("💥 Fehler beim Parsen oder Verarbeiten:", error);
+        }
     });
     </script>
 
