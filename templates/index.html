@@ -144,16 +144,15 @@
             form.appendChild(downloadButton);
             statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet.";
         }).catch(async error => {
-        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
-        console.error("Fehler beim Abruf oder Parsen:", error);
-        
-        try {
-            const errorText = await error.response?.text?.();
-            console.error("Server-Antwort (Fehlertext):", errorText);
-        } catch (e) {
-            console.warn("Konnte Fehlertext nicht extrahieren:", e);
-        }
-    });
+    statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
+    console.error("Fehler beim Abruf oder Parsen:", error);
+
+    // Test: Antwortinhalt loggen (funktioniert nur, wenn response vorhanden ist)
+    if (error instanceof Response) {
+        const text = await error.text();
+        console.warn("Serverantwort war:", text);
+    }
+});
     </script>
 
 </body>
