@@ -103,7 +103,10 @@
             if (!response.ok) throw new Error("Serverfehler");
     
             const text = await response.text();
+            console.log("RAW response:", text);
             const data = JSON.parse(text);
+            console.log("Parsed JSON:", data);
+            console.log("Base64 file length:", data.file?.length);
     
             // ⚠️ Warnung anzeigen, falls Flags vorhanden
             if (data.flags && data.flags.length > 0) {
@@ -138,10 +141,16 @@
     
             form.appendChild(downloadButton);
             statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet.";
-        }).catch(error => {
-            statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
-            console.error(error);
-        });
+        }).catch(async error => {
+        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
+        console.error("Fehler beim Abruf oder Parsen:", error);
+        
+        try {
+            const errorText = await error.response?.text?.();
+            console.error("Server-Antwort (Fehlertext):", errorText);
+        } catch (e) {
+            console.warn("Konnte Fehlertext nicht extrahieren:", e);
+        }
     });
     </script>
 
