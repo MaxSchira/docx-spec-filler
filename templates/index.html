@@ -104,7 +104,9 @@
     
             const text = await response.text();
             console.log("RAW response:", text);
-            const data = JSON.parse(text);
+            const dataArray = JSON.parse(text);
+            const data = dataArray[0]; // ⬅️ wichtig!
+
             console.log("Parsed JSON:", data);
             console.log("Base64 file length:", data.file?.length);
     
