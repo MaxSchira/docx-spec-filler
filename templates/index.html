@@ -84,62 +84,65 @@
 
 
 <script>
-document.getElementById("upload-form").addEventListener("submit", function(event) {
-    event.preventDefault();
-
-    const form = event.target;
-    const formData = new FormData(form);
-    const statusDiv = document.createElement("div");
-    statusDiv.innerText = "🕐 Dokument wird verarbeitet (ca. 1 Minute)... bitte nicht schließen.";
-    form.appendChild(statusDiv);
-
-    fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
-        method: "POST",
-        body: formData
-    }).then(async response => {
-        if (!response.ok) throw new Error("Serverfehler");
-
-        const data = await response.json();
-
-        // ⚠️ Warnung anzeigen
-        if (data.flags && data.flags.length > 0) {
-            const warning = document.createElement("div");
-            warning.style.color = "red";
-            warning.style.marginTop = "1rem";
-            warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" +
-                data.flags.map(f => "• " + f.replace(/_/g, " ")).join("<br>");
-            form.appendChild(warning);
-        }
-
-        // 📥 Button zum Herunterladen erzeugen
-        const downloadButton = document.createElement("button");
-        downloadButton.innerText = "📥 Dokument herunterladen";
-        downloadButton.style.marginTop = "1rem";
-        downloadButton.onclick = function () {
-            const byteCharacters = atob(data.file);
-            const byteNumbers = Array.from(byteCharacters).map(c => c.charCodeAt(0));
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], {
-                type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "Spezifikation.docx";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        };
-
-        form.appendChild(downloadButton);
-        statusDiv.innerText = "✅ Dokument ist bereit.";
-    }).catch(error => {
-        statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
-        console.error(error);
+    document.getElementById("upload-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+    
+        const form = event.target;
+        const formData = new FormData(form);
+    
+        // Statusanzeige initialisieren
+        const statusDiv = document.createElement("div");
+        statusDiv.innerText = "🕐 Dokument wird verarbeitet (ca. 1 Minute)... bitte nicht schließen.";
+        statusDiv.style.marginTop = "1rem";
+        form.appendChild(statusDiv);
+    
+        fetch("https://maxschira.app.n8n.cloud/webhook/f9e3a865-a547-45bc-8fe4-6d507d2cc9f5", {
+            method: "POST",
+            body: formData
+        }).then(async response => {
+            if (!response.ok) throw new Error("Serverfehler");
+    
+            const data = await response.json();
+    
+            // ⚠️ Warnung anzeigen, falls Flags vorhanden
+            if (data.flags && data.flags.length > 0) {
+                const warning = document.createElement("div");
+                warning.style.color = "red";
+                warning.style.marginTop = "1rem";
+                warning.innerHTML = "⚠️ <strong>Auffällige Werte:</strong><br>" +
+                    data.flags.map(f => "• " + f.replace("_Flag", "").replace(/_/g, " ")).join("<br>");
+                form.appendChild(warning);
+            }
+    
+            // 📥 Button zum Herunterladen erzeugen
+            const downloadButton = document.createElement("button");
+            downloadButton.innerText = "📥 Dokument herunterladen";
+            downloadButton.style.marginTop = "1rem";
+            downloadButton.onclick = function () {
+                const byteCharacters = atob(data.file);
+                const byteNumbers = Array.from(byteCharacters).map(c => c.charCodeAt(0));
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {
+                    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Spezifikation.docx";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            };
+    
+            form.appendChild(downloadButton);
+            statusDiv.innerText = "✅ Dokument erfolgreich verarbeitet.";
+        }).catch(error => {
+            statusDiv.innerText = "❌ Fehler beim Verarbeiten des Dokuments.";
+            console.error(error);
+        });
     });
-});
-</script>
+    </script>
 
 </body>
 </html>
