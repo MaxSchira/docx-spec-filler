@@ -61,7 +61,7 @@ def process_document(product_type, data, flow_file=None):
         
         # Process flowchart if provided
         flowchart_path = None
-        if flow_file:
+        if flow_file and hasattr(flow_file, 'read') and flow_file.filename:
             try:
                 # Check if it's actually a PDF by reading the first few bytes
                 flow_file.seek(0)
@@ -107,7 +107,7 @@ def process_document(product_type, data, flow_file=None):
         doc = DocxTemplate(template_filename)
 
         # Process flowchart image if available
-        if flowchart_path:
+        if flowchart_path and img:
             width_px, height_px = img.size
             dpi = 300
             width_in = width_px / dpi
