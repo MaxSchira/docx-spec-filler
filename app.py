@@ -24,12 +24,19 @@ def extract_data_from_new_format(data):
     Extract data from the new nested JSON format
     Since templates now use snake_case, we can use the data almost directly
     """
-    # The new format has the actual data nested under 'extractedData'
-    if isinstance(data, list) and len(data) > 1:
-        extracted_data = data[1].get('extractedData', {})
+    # Handle the new structure: data is a list with one item containing productData.extractedData
+    if isinstance(data, list) and len(data) > 0:
+        first_item = data[0]
+        if 'productData' in first_item and 'extractedData' in first_item['productData']:
+            extracted_data = first_item['productData']['extractedData']
+        elif 'extractedData' in first_item:
+            extracted_data = first_item['extractedData']
+        else:
+            # Fallback - try to use the first item directly
+            extracted_data = first_item
     else:
         # Fallback for different structures
-        extracted_data = data.get('extractedData', data)
+        extracted_data = data.get('extractedData', data) if isinstance(data, dict) else {}
     
     # Ensure all missing fields are empty strings to prevent template errors
     template_data = {}
@@ -55,14 +62,36 @@ def process_document(product_type, data, flow_file=None):
         # Process flowchart if provided
         flowchart_path = None
         if flow_file:
-            pdf_temp_path = os.path.join(UPLOAD_FOLDER, "flowchart.pdf")
-            flow_file.save(pdf_temp_path)
-            images = convert_from_path(pdf_temp_path)
-            img = images[0]
+            try:
+                # Check if it's actually a PDF by reading the first few bytes
+                flow_file.seek(0)
+                header = flow_file.read(4)
+                flow_file.seek(0)
+                
+                if header == b'%PDF':
+                    # It's a PDF, process normally
+                    pdf_temp_path = os.path.join(UPLOAD_FOLDER, "flowchart.pdf")
+                    flow_file.save(pdf_temp_path)
+                    images = convert_from_path(pdf_temp_path)
+                    img = images[0]
 
-            img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
-            img.save(img_path, "PNG")
-            flowchart_path = img_path
+                    img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
+                    img.save(img_path, "PNG")
+                    flowchart_path = img_path
+                elif header.startswith(b'\x89PNG'):
+                    # It's already a PNG, save directly
+                    img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
+                    flow_file.save(img_path)
+                    flowchart_path = img_path
+                    # Load the image to get dimensions
+                    img = Image.open(img_path)
+                else:
+                    print(f"Unknown file format. Header: {header}")
+                    return f"Unsupported file format for flowchart", 400
+                    
+            except Exception as e:
+                print(f"Error processing flowchart: {e}")
+                return f"Error processing flowchart: {e}", 500
 
         # Load template
         doc = DocxTemplate(template_filename)
