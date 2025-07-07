@@ -79,12 +79,22 @@ def process_document(product_type, data, flow_file=None):
                     img.save(img_path, "PNG")
                     flowchart_path = img_path
                 elif header.startswith(b'\x89PNG'):
-                    # It's already a PNG, save directly
+                    # It's a PNG, save directly
                     img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
                     flow_file.save(img_path)
                     flowchart_path = img_path
                     # Load the image to get dimensions
                     img = Image.open(img_path)
+                elif header.startswith(b'\xff\xd8\xff'):
+                    # It's a JPEG, save and convert to PNG for consistency
+                    jpeg_temp_path = os.path.join(UPLOAD_FOLDER, "flowchart.jpg")
+                    flow_file.save(jpeg_temp_path)
+                    
+                    # Load JPEG and save as PNG
+                    img = Image.open(jpeg_temp_path)
+                    img_path = os.path.join(UPLOAD_FOLDER, "flowchart.png")
+                    img.save(img_path, "PNG")
+                    flowchart_path = img_path
                 else:
                     print(f"Unknown file format. Header: {header}")
                     return f"Unsupported file format for flowchart", 400
