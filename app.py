@@ -21,26 +21,18 @@ TEMPLATE_MAPPING = {
 
 def extract_data_from_new_format(data):
     """
-    Extract data from the new nested JSON format
-    Since templates now use snake_case, we can use the data almost directly
+    Extract data from the cleaned JSON format
+    The data is now already clean and flat, so just handle the array wrapper
     """
-    # Handle the new structure: data is a list with one item containing productData.extractedData
+    # Handle the array wrapper from n8n
     if isinstance(data, list) and len(data) > 0:
-        first_item = data[0]
-        if 'productData' in first_item and 'extractedData' in first_item['productData']:
-            extracted_data = first_item['productData']['extractedData']
-        elif 'extractedData' in first_item:
-            extracted_data = first_item['extractedData']
-        else:
-            # Fallback - try to use the first item directly
-            extracted_data = first_item
+        cleaned_data = data[0]  # Get the first (and only) item
     else:
-        # Fallback for different structures
-        extracted_data = data.get('extractedData', data) if isinstance(data, dict) else {}
+        cleaned_data = data
     
     # Ensure all missing fields are empty strings to prevent template errors
     template_data = {}
-    for key, value in extracted_data.items():
+    for key, value in cleaned_data.items():
         template_data[key] = value if value is not None else ""
     
     return template_data
